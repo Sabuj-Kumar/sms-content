@@ -16,6 +16,9 @@ public class ChargeConfig extends AuditableEntity {
     @GeneratedValue( strategy = GenerationType.IDENTITY )
     private Long id;
 
+    @Column( name = "operator" )
+    private String operator;
+
     @Column( name = "charge_code" )
     private String chargeCode;
 

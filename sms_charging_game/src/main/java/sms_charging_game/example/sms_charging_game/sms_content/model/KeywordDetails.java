@@ -16,8 +16,8 @@ public class KeywordDetails extends AuditableEntity {
     @GeneratedValue( strategy = GenerationType.IDENTITY )
     private Long id;
 
-    @Column( name = "keyword" )
-    private String keyWord;
+    @Column( name = "keyword", unique = true )
+    private String keyword;
 
     @Override
     public boolean equals(Object o) {

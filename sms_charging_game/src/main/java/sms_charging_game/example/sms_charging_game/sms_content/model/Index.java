@@ -20,7 +20,7 @@ public class Index extends AuditableEntity {
     @GeneratedValue( strategy = GenerationType.IDENTITY )
     private Long id;
 
-    @Column( name = "transaction_id" )
+    @Column( name = "transaction_id", unique = true )
     private String transactionId;
 
     @Column( name = "short_code" )
