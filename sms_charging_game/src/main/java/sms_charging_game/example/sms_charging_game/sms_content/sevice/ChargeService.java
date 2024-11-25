@@ -26,6 +26,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor( onConstructor_ = {@Autowired} )
 public class ChargeService {
 
+    private final IndexRepository indexRepository;
     private final ChargeSuccessRepository chargeSuccessRepository;
     private final ChargeFailureRepository chargeFailureRepository;
     private final ChargeConfigRepository chargeConfigRepository;
@@ -87,6 +88,7 @@ public class ChargeService {
         chargeSuccess.setUpdatedAt( LocalDateTime.now() );
 
         index.setStatus( Status.S );
+        indexRepository.save( index );
         chargeSuccessRepository.save( chargeSuccess );
     }
 
@@ -107,6 +109,7 @@ public class ChargeService {
         chargeFailure.setMessage( message );
 
         index.setStatus( Status.F );
+        indexRepository.save( index );
         chargeFailureRepository.save( chargeFailure );
     }
 }

@@ -122,11 +122,10 @@ public class ContentService {
 
         for( Index index : indexList ) {
             try {
-
+                indexRepository.save( index );
                 if( keyDetailsService.checkKeyValid( index.getKeyword() ) )
                     virtualThreadExecutor.execute( processExecutorService.processUnlockCodesFromIndex( index ) );
 
-                indexRepository.save( index );
                 keyDetailsService.saveKeyDetails( index );
 
             } catch ( Exception e ) {
