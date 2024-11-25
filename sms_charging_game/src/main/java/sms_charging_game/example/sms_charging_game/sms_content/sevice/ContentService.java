@@ -9,11 +9,11 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 import sms_charging_game.example.sms_charging_game.sms_content.enums.OperatorType;
 import sms_charging_game.example.sms_charging_game.sms_content.enums.Status;
 import sms_charging_game.example.sms_charging_game.sms_content.model.Index;
 import sms_charging_game.example.sms_charging_game.sms_content.repository.IndexRepository;
-import sms_charging_game.example.sms_charging_game.sms_content.repository.KeywordDetailsRepository;
 import sms_charging_game.example.sms_charging_game.sms_content.response.ContentDTOResponse;
 import sms_charging_game.example.sms_charging_game.sms_content.response.ContentWrapperResponse;
 import sms_charging_game.example.sms_charging_game.sms_content.utils.JsonConverter;
@@ -37,8 +37,9 @@ public class ContentService {
     private static final String CONTENT_URL = "http://demo.webmanza.com/a55dbz923ace647v/api/v1.0/services/content";
     private static final String PING_URL = "http://demo.webmanza.com/a55dbz923ace647v/api/v1.0/ping";
 
+    private final TransactionTemplate transactionTemplate;
     private final Executor virtualThreadExecutor = Executors.newVirtualThreadPerTaskExecutor();
-    private ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
     @Transactional
     public void pingRequest() throws IOException, InterruptedException {
@@ -53,10 +54,9 @@ public class ContentService {
             retrieveAndSaveContent();
     }
 
-    @Transactional
     public void retrieveAndSaveContent() {
         scheduler.scheduleAtFixedRate(() -> {
-
+            transactionTemplate.execute( status -> {
                 HttpClient client = HttpClient.newHttpClient();
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri( URI.create( CONTENT_URL ))
@@ -73,38 +73,31 @@ public class ContentService {
                         ContentWrapperResponse contentWrapperResponse = jsonConverter.convertToListOfContentDTO( jsonResponse );
                         List<ContentDTOResponse> contentList = contentWrapperResponse.getContents();
 
-                        for( ContentDTOResponse content:  contentList ) {
+                        List<Index> indexList = contentList.stream().
+                                map( content -> {
+                                    Index index = new Index();
+                                    index.setTransactionId( content.getTransactionId() );
+                                    index.setOperatorType( getOperator( content.getOperator() ) );
+                                    index.setShortCode( Long.parseLong( content.getShortCode() ) );
+                                    index.setMsisdn( content.getMsisdn() );
+                                    index.setSms( content.getSms() );
+                                    index.setStatus( Status.N );
+                                    index.setCreatedAt( LocalDateTime.now() );
+                                    index.setUpdatedAt( LocalDateTime.now() );
 
-                            Index index = new Index();
-                            index.setTransactionId( content.getTransactionId() );
-                            index.setOperatorType( getOperator( content.getOperator() ) );
-                            index.setShortCode( Long.parseLong( content.getShortCode() ) );
-                            index.setMsisdn( content.getMsisdn() );
-                            index.setSms( content.getSms() );
-                            index.setStatus( Status.N );
-                            index.setCreatedAt( LocalDateTime.now() );
-                            index.setUpdatedAt( LocalDateTime.now() );
+                                    setDataFromSms( index, content.getSms() );
+                                    return index;
+                                })
+                                .toList();
 
-                            setDataFromSms( index, content.getSms() );
-
-                            try {
-                                indexRepository.save( index );
-                                if( keyDetailsService.checkKeyValid( index.getKeyword() ) )
-                                    virtualThreadExecutor.execute( processExecutorService.processUnlockCodesFromIndex( index ) );
-
-                                keyDetailsService.saveKeyDetails( index );
-
-                            } catch ( Exception e ) {
-
-                                System.out.println( "Duplicate content found. Skipping save." );
-                            }
-                        }
+                        executeVirtualThread( indexList );
                     }
                 } catch (Exception e) {
-                    System.err.println("Error during data retrieval: " + e.getMessage());
-                    e.printStackTrace();
-                }
 
+                    System.err.println( "Error during data retrieval: " + e.getMessage() );
+                }
+                return null;
+            });
         }, 0, 10, TimeUnit.SECONDS );
     }
 
@@ -123,5 +116,22 @@ public class ContentService {
             case "TELETALK" -> OperatorType.TELETALK;
             default -> OperatorType.AIRTEL;
         };
+    }
+
+    private void executeVirtualThread( List<Index> indexList ) {
+
+        for( Index index : indexList ) {
+            try {
+
+                if( keyDetailsService.checkKeyValid( index.getKeyword() ) )
+                    virtualThreadExecutor.execute( processExecutorService.processUnlockCodesFromIndex( index ) );
+
+                indexRepository.save( index );
+                keyDetailsService.saveKeyDetails( index );
+
+            } catch ( Exception e ) {
+                System.out.println( "Duplicate content found. Skipping save." );
+            }
+        }
     }
 }

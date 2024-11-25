@@ -4,9 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import sms_charging_game.example.sms_charging_game.sms_content.model.Index;
-import sms_charging_game.example.sms_charging_game.sms_content.model.KeywordDetails;
-import sms_charging_game.example.sms_charging_game.sms_content.repository.IndexRepository;
-import sms_charging_game.example.sms_charging_game.sms_content.repository.KeywordDetailsRepository;
 import sms_charging_game.example.sms_charging_game.sms_content.request.UnlockRequest;
 import sms_charging_game.example.sms_charging_game.sms_content.response.UnlockResponse;
 import sms_charging_game.example.sms_charging_game.sms_content.utils.JsonConverter;
@@ -15,7 +12,6 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor( onConstructor_ = {@Autowired} )
@@ -61,10 +57,7 @@ public class processExecutorService {
                 if( unlockResponse.getUnlockCode() != null )
                     chargeService.requestToCharge( index );
 
-                System.out.println( "Unlock code response: " + jsonResponse );
-
             } else {
-
                 System.err.println( "Failed to retrieve unlock code. Status code: " + response.statusCode() );
             }
         } catch ( Exception e ) {

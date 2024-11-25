@@ -1,9 +1,9 @@
 package sms_charging_game.example.sms_charging_game.sms_content.sevice;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 import sms_charging_game.example.sms_charging_game.sms_content.enums.Status;
 import sms_charging_game.example.sms_charging_game.sms_content.model.ChargeConfig;
 import sms_charging_game.example.sms_charging_game.sms_content.model.ChargeFailure;
@@ -26,15 +26,14 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor( onConstructor_ = {@Autowired} )
 public class ChargeService {
 
-    private final IndexRepository indexRepository;
     private final ChargeSuccessRepository chargeSuccessRepository;
     private final ChargeFailureRepository chargeFailureRepository;
     private final ChargeConfigRepository chargeConfigRepository;
     private final JsonConverter jsonConverter;
+    private final TransactionTemplate transactionTemplate;
 
     private final String CHARGE_URL = "http://demo.webmanza.com/a55dbz923ace647v/api/v1.0/services/charge";
 
-    @Transactional
     public void requestToCharge( Index index ) {
 
         ChargeConfig chargeConfig = chargeConfigRepository.findByOperator( index.getOperatorType().name() );
@@ -49,39 +48,32 @@ public class ChargeService {
         charging( chargingRequest, index );
     }
 
-    @Transactional
     public void charging( ChargingRequest chargingRequest, Index index ) {
 
-        try {
-            String jsonBody = jsonConverter.createJsonRequest( chargingRequest );
+        transactionTemplate.execute( status -> {
+            try {
+                String jsonBody = jsonConverter.createJsonRequest( chargingRequest );
 
-            HttpClient client = HttpClient.newHttpClient();
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri( URI.create( CHARGE_URL ) )
-                    .header("Content-Type", "application/json" )
-                    .POST( HttpRequest.BodyPublishers.ofString( jsonBody ) )
-                    .build();
+                HttpClient client = HttpClient.newHttpClient();
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri( URI.create( CHARGE_URL ) )
+                        .header("Content-Type", "application/json" )
+                        .POST( HttpRequest.BodyPublishers.ofString( jsonBody ) )
+                        .build();
 
-            HttpResponse<String> response = client.send( request, HttpResponse.BodyHandlers.ofString() );
+                HttpResponse<String> response = client.send( request, HttpResponse.BodyHandlers.ofString() );
+                if ( response.statusCode() == 200 )
+                    saveSuccessCharge( index );
+                else
+                    saveFailCharge( index, (long) response.statusCode(), response.body() );
 
-            if ( response.statusCode() == 200 ) {
-
-                String jsonResponse = response.body();
-                saveSuccessCharge( index );
-                System.out.println( "Unlock code response: " + jsonResponse );
-
-            } else {
-
-                saveFailCharge( index, (long) response.statusCode(), response.body() );
-                System.err.println( "Failed to retrieve unlock code. Status code: " + response.statusCode() );
+            } catch ( Exception e ) {
+                e.printStackTrace();
             }
-        } catch ( Exception e ) {
-            System.err.println( "Error during unlock request: " + e.getMessage() );
-            e.printStackTrace();
-        }
+            return null;
+        } );
     }
 
-    @Transactional
     public void saveSuccessCharge( Index index ) {
 
         ChargeSuccess chargeSuccess = new ChargeSuccess();
@@ -95,11 +87,9 @@ public class ChargeService {
         chargeSuccess.setUpdatedAt( LocalDateTime.now() );
 
         index.setStatus( Status.S );
-        indexRepository.save( index );
         chargeSuccessRepository.save( chargeSuccess );
     }
 
-    @Transactional
     public void saveFailCharge( Index index, Long statusCode, String message ) {
 
         ChargeFailure chargeFailure = new ChargeFailure();
@@ -117,7 +107,6 @@ public class ChargeService {
         chargeFailure.setMessage( message );
 
         index.setStatus( Status.F );
-        indexRepository.save( index );
         chargeFailureRepository.save( chargeFailure );
     }
 }
