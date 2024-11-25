@@ -3,6 +3,7 @@ package sms_charging_game.example.sms_charging_game.sms_content.model;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.experimental.Accessors;
+import sms_charging_game.example.sms_charging_game.sms_content.enums.OperatorType;
 
 import java.util.Objects;
 
@@ -33,6 +34,10 @@ public class ChargeSuccess extends AuditableEntity {
 
     @Column( name = "game_name" )
     private String gameName;
+
+    @Column( name = "operator" )
+    private OperatorType operatorType;
+
 
     @Override
     public boolean equals(Object o) {

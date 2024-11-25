@@ -84,6 +84,8 @@ public class ChargeService {
         chargeSuccess.setSmsId( index.getId() );
         chargeSuccess.setGameName( index.getGameName() );
         chargeSuccess.setKeyword( index.getKeyword() );
+        chargeSuccess.setShortCode( index.getShortCode() );
+        chargeSuccess.setOperatorType( index.getOperatorType() );
         chargeSuccess.setCreatedAt( LocalDateTime.now() );
         chargeSuccess.setUpdatedAt( LocalDateTime.now() );
 
