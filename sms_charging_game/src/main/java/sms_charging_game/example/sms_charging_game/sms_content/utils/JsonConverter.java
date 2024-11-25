@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import sms_charging_game.example.sms_charging_game.sms_content.request.UnlockRequest;
 import sms_charging_game.example.sms_charging_game.sms_content.response.ContentDTOResponse;
 import sms_charging_game.example.sms_charging_game.sms_content.response.ContentWrapperResponse;
+import sms_charging_game.example.sms_charging_game.sms_content.response.ErrorResponse;
 import sms_charging_game.example.sms_charging_game.sms_content.response.UnlockResponse;
 
 import java.util.List;
@@ -39,5 +40,10 @@ public class JsonConverter {
     public ContentWrapperResponse convertToListOfContentDTO( String contentJson ) throws JsonProcessingException {
 
         return objectMapper.readValue( contentJson, ContentWrapperResponse.class );
+    }
+
+    public ErrorResponse convertToErrorResponse( String contentJson ) throws JsonProcessingException {
+
+        return objectMapper.readValue( contentJson, ErrorResponse.class );
     }
 }

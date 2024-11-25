@@ -14,6 +14,7 @@ import sms_charging_game.example.sms_charging_game.sms_content.repository.Charge
 import sms_charging_game.example.sms_charging_game.sms_content.repository.ChargeSuccessRepository;
 import sms_charging_game.example.sms_charging_game.sms_content.repository.IndexRepository;
 import sms_charging_game.example.sms_charging_game.sms_content.request.ChargingRequest;
+import sms_charging_game.example.sms_charging_game.sms_content.response.ErrorResponse;
 import sms_charging_game.example.sms_charging_game.sms_content.utils.JsonConverter;
 
 import java.net.URI;
@@ -65,8 +66,10 @@ public class ChargeService {
                 HttpResponse<String> response = client.send( request, HttpResponse.BodyHandlers.ofString() );
                 if ( response.statusCode() == 200 )
                     saveSuccessCharge( index );
-                else
-                    saveFailCharge( index, (long) response.statusCode(), response.body() );
+                else {
+                    ErrorResponse errorResponse = jsonConverter.convertToErrorResponse( response.body() );
+                    saveFailCharge( index, (long) errorResponse.getStatusCode(), errorResponse.getMessage() );
+                }
 
             } catch ( Exception e ) {
                 e.printStackTrace();
@@ -101,13 +104,14 @@ public class ChargeService {
         chargeFailure.setTransactionId( index.getTransactionId() );
         chargeFailure.setMsisdn( index.getMsisdn() );
         chargeFailure.setSmsId( index.getId() );
+        chargeFailure.setShortCode( index.getShortCode() );
         chargeFailure.setGameName( index.getGameName() );
         chargeFailure.setKeyword( index.getKeyword() );
         chargeFailure.setOperatorType( index.getOperatorType() );
         chargeFailure.setCreatedAt( LocalDateTime.now() );
         chargeFailure.setUpdatedAt( LocalDateTime.now() );
 
-        chargeFailure.setShortCode( statusCode );
+        chargeFailure.setStatusCode( statusCode );
         chargeFailure.setMessage( message );
 
         index.setStatus( Status.F );
