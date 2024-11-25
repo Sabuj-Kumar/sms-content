@@ -5,11 +5,11 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.Accessors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import sms_charging_game.example.sms_charging_game.sms_content.request.UnlockRequest;
 import sms_charging_game.example.sms_charging_game.sms_content.response.ContentDTOResponse;
+import sms_charging_game.example.sms_charging_game.sms_content.response.ContentWrapperResponse;
 import sms_charging_game.example.sms_charging_game.sms_content.response.UnlockResponse;
 
 import java.util.List;
@@ -21,7 +21,7 @@ public class JsonConverter {
 
     private final ObjectMapper objectMapper;
 
-    public String createJsonRequest( UnlockRequest unlockRequest ) {
+    public String createJsonRequest( Object unlockRequest ) {
 
         try {
             return objectMapper.writeValueAsString(unlockRequest);
@@ -36,8 +36,8 @@ public class JsonConverter {
         return objectMapper.readValue( unlockResponseJson, UnlockResponse.class );
     }
 
-    public List<ContentDTOResponse>  convertToListOfContentDTO( String contentJson ) throws JsonProcessingException {
+    public ContentWrapperResponse convertToListOfContentDTO( String contentJson ) throws JsonProcessingException {
 
-        return objectMapper.readValue( contentJson, new TypeReference<>() {});
+        return objectMapper.readValue( contentJson, ContentWrapperResponse.class );
     }
 }
