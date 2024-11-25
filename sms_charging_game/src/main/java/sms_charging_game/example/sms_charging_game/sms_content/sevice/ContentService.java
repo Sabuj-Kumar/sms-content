@@ -98,7 +98,7 @@ public class ContentService {
                 }
                 return null;
             });
-        }, 0, 10, TimeUnit.SECONDS );
+        }, 0, 30, TimeUnit.SECONDS );
     }
 
     private void setDataFromSms( Index entity, String sms ) {
